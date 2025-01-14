@@ -25,10 +25,16 @@
             height: auto;
         }
 
-        #result {
+        #result-container {
             margin-top: 20px;
             font-size: 1.2em;
             color: green;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         button {
@@ -51,15 +57,19 @@
     <div id="scanner-container">
         <div id="scanner"></div>
     </div>
-    <p id="result">Result will appear here</p>
     <button id="start-scan">Start Scanning</button>
     <button id="stop-scan" disabled>Stop Scanning</button>
 
+    <div id="result-container">
+        <h3>Scanned Results:</h3>
+        <ul id="results-list"></ul>
+    </div>
+
     <script>
         const scannerContainer = document.getElementById("scanner-container");
-        const resultElement = document.getElementById("result");
         const startScanButton = document.getElementById("start-scan");
         const stopScanButton = document.getElementById("stop-scan");
+        const resultsList = document.getElementById("results-list");
 
         // Start scanning
         startScanButton.addEventListener("click", () => {
@@ -80,7 +90,6 @@
             }, (err) => {
                 if (err) {
                     console.error("Error initializing Quagga:", err);
-                    resultElement.textContent = "Error starting the scanner. Please try again.";
                     return;
                 }
                 Quagga.start();
@@ -90,9 +99,18 @@
 
             // Handle barcode detection
             Quagga.onDetected(data => {
-                resultElement.textContent = `Scanned Result: ${data.codeResult.code}`;
-                console.log("Barcode detected:", data);
-                stopScanning(); // Automatically stop after a successful scan
+                const scannedResult = data.codeResult.code;
+
+                // Log the scanned result
+                console.log("Barcode detected:", scannedResult);
+
+                // Add the result to the list
+                const listItem = document.createElement("li");
+                listItem.textContent = `Scanned Result: ${scannedResult}`;
+                resultsList.appendChild(listItem);
+
+                // Optionally stop scanning after detection
+                stopScanning();
             });
         });
 
@@ -103,7 +121,6 @@
             Quagga.stop();
             startScanButton.disabled = false;
             stopScanButton.disabled = true;
-            resultElement.textContent = "Scanning stopped.";
         }
     </script>
 </body>
