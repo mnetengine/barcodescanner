@@ -66,8 +66,8 @@
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
                 const backCamera = cameras.find(camera =>
-                    camera.label.toLowerCase().includes('back') || 
-                    camera.label.toLowerCase().includes('rear')
+                    camera.label.toLowerCase().includes('back camera') || 
+                    camera.label.toLowerCase().includes('rear camera')
                 );
                 const cameraId = backCamera ? backCamera.id : cameras[0].id;
     
