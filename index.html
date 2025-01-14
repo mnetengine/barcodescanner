@@ -95,30 +95,36 @@
 
         // Camera ID fetching function for iOS
         async function getIphoneCameras() {
-            let cameraId = null;
 
-            await Html5Qrcode.getCameras()
-                .then(devices => {
-                    if (devices && devices.length) {
-                        iphoneCamerasElement.style.display = "block";
-                        iphoneCamerasElement.innerHTML = ""; // Clear previous options
+        var cameraId = null;
 
-                        devices.forEach(device => {
-                            const opt = document.createElement("option");
-                            opt.value = device.id;
-                            opt.innerHTML = device.label;
-                            iphoneCamerasElement.appendChild(opt);
-                        });
+        await Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
 
-                        cameraId = devices[0].id; // Default to the first camera
-                        iphoneCamerasElement.value = cameraId;
+
+                for (let i = 0; i < devices.length; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = devices[i].id;
+                    opt.innerHTML = devices[i].label;
+                    document.getElementById('iphoneCameras').appendChild(opt);
+                }
+
+                // PUT A FOR EACH GETING THE DEVICEID FROM CAMERA WITH ZERO
+                for (let index = 0; index < devices.length; index++) {
+                    if ((devices[index].label.indexOf('0')) || (devices[index].label.toLowerCase() === 'back camera')) {
+                        cameraId = devices[index].id;
+                        document.getElementById('iphoneCameras').value = devices[index].id;
+                    } else {
+                        cameraId = devices[0].id;
+                        document.getElementById('iphoneCameras').value = devices[0].id;;
                     }
-                })
-                .catch(err => {
-                    console.error("Error fetching iOS cameras:", err);
-                });
+                }
 
-            return cameraId;
+
+            }
+        }).catch(err => {});
+
+        return cameraId;
         }
 
         // Unified camera fetching function
