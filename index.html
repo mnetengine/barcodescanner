@@ -67,17 +67,14 @@
 
             Html5Qrcode.getCameras().then(cameras => {
                 if (cameras && cameras.length > 0) {
-                    // Try to find the back camera
-                    let cameraId = cameras(0)
 
                     scanner.start(
-                        cameraId,
+                        { facingMode: "environment" },
                         {
                             fps: 10,
                             qrbox: { width: 300, height: 300 }, // Scanning area
                             aspectRatio: 1.7778, // 16:9 for better compatibility
                             videoConstraints: {
-                                facingMode: "environment", // Use the back camera
                                 focusMode: "continuous",  // Attempt continuous focus
                                 width: { ideal: 1920 },  // High resolution
                                 height: { ideal: 1080 }
