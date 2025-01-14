@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode Scanner</title>
-    <script src="https://github.com/mebjas/html5-qrcode/releases/download/v2.3.8/html5-qrcode.min.js"></script>
+    <title>Barcode Scanner with QuaggaJS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,23 +12,23 @@
             padding: 20px;
         }
 
-        #reader {
+        #scanner-container {
+            position: relative;
             width: 100%;
             max-width: 500px;
             margin: 20px auto;
-            display: none;
             border: 1px solid #ccc;
+        }
+
+        #scanner {
+            width: 100%;
+            height: auto;
         }
 
         #result {
             margin-top: 20px;
             font-size: 1.2em;
             color: green;
-        }
-
-        #iphoneCameras {
-            display: none;
-            margin-top: 10px;
         }
 
         button {
@@ -47,156 +47,64 @@
     </style>
 </head>
 <body>
-    <h1>Barcode Scanner</h1>
-    <p>Click the button below to start or stop scanning.</p>
-    <button id="toggle-scan">Start Scanning</button>
-    <select id="iphoneCameras"></select>
-    <div id="reader"></div>
-    <p id="result"></p>
+    <h1>Barcode Scanner with QuaggaJS</h1>
+    <div id="scanner-container">
+        <div id="scanner"></div>
+    </div>
+    <p id="result">Result will appear here</p>
+    <button id="start-scan">Start Scanning</button>
+    <button id="stop-scan" disabled>Stop Scanning</button>
 
     <script>
-        let scanner; // Html5Qrcode instance
-        let isScanning = false; // Tracking scanning state
-        const toggleScanButton = document.getElementById("toggle-scan");
+        const scannerContainer = document.getElementById("scanner-container");
         const resultElement = document.getElementById("result");
-        const readerElement = document.getElementById("reader");
-        const iphoneCamerasElement = document.getElementById("iphoneCameras");
+        const startScanButton = document.getElementById("start-scan");
+        const stopScanButton = document.getElementById("stop-scan");
 
-        // Platform detection function
-        function isIOS() {
-            return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        }
-
-        // Camera ID fetching function for Android
-        async function getCameraId() {
-            let cameraId = null;
-
-            await Html5Qrcode.getCameras()
-                .then(devices => {
-                    if (devices && devices.length) {
-                        for (let index = 0; index < devices.length; index++) {
-                            if (
-                                devices[index].label.indexOf("0") >= 0 ||
-                                devices[index].label.toLowerCase() === "back camera"
-                            ) {
-                                cameraId = devices[index].id;
-                                break;
-                            }
-                        }
-                        if (!cameraId) cameraId = devices[0].id; // Default to first camera if no match
+        // Start scanning
+        startScanButton.addEventListener("click", () => {
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: scannerContainer, // Attach to the scanner container
+                    constraints: {
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment" // Use the back camera
                     }
-                })
-                .catch(err => {
-                    console.error("Error fetching Android cameras:", err);
-                });
-
-            return cameraId;
-        }
-
-        // Camera ID fetching function for iOS
-        async function getIphoneCameras() {
-
-        var cameraId = null;
-
-        await Html5Qrcode.getCameras().then(devices => {
-            if (devices && devices.length) {
-
-
-                for (let i = 0; i < devices.length; i++) {
-                    var opt = document.createElement('option');
-                    opt.value = devices[i].id;
-                    opt.innerHTML = devices[i].label;
-                    document.getElementById('iphoneCameras').appendChild(opt);
+                },
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader"] // Supported barcode formats
                 }
-
-                // PUT A FOR EACH GETING THE DEVICEID FROM CAMERA WITH ZERO
-                for (let index = 0; index < devices.length; index++) {
-                    if ((devices[index].label.indexOf('0')) || (devices[index].label.toLowerCase() === 'back camera')) {
-                        cameraId = devices[index].id;
-                        document.getElementById('iphoneCameras').value = devices[index].id;
-                    } else {
-                        cameraId = devices[0].id;
-                        document.getElementById('iphoneCameras').value = devices[0].id;;
-                    }
+            }, (err) => {
+                if (err) {
+                    console.error("Error initializing Quagga:", err);
+                    resultElement.textContent = "Error starting the scanner. Please try again.";
+                    return;
                 }
+                Quagga.start();
+                startScanButton.disabled = true;
+                stopScanButton.disabled = false;
+            });
 
-
-            }
-        }).catch(err => {});
-
-        return cameraId;
-        }
-
-        // Unified camera fetching function
-        async function getCameraIdForPlatform() {
-            if (isIOS()) {
-                return await getIphoneCameras();
-            } else {
-                return await getCameraId();
-            }
-        }
-
-        // Function to start scanning
-        async function startScanning() {
-            resultElement.textContent = "";
-            readerElement.style.display = "block";
-
-            if (!scanner) {
-                scanner = new Html5Qrcode("reader");
-            }
-
-            const cameraId = await getCameraIdForPlatform();
-            if (!cameraId) {
-                alert("No cameras available.");
-                return;
-            }
-
-            scanner
-                .start(
-                    cameraId,
-                    {
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 },
-                        focusMode: "continuous"
-                    },
-                    decodedText => {
-                        resultElement.textContent = `Scanned Result: ${decodedText}`;
-                        stopScanning();
-                        toggleScanButton.textContent = "Start Scanning";
-                        isScanning = false;
-                    },
-                    errorMessage => {
-                        console.warn("Scanning error:", errorMessage);
-                    }
-                )
-                .catch(err => {
-                    console.error("Error starting scanner:", err);
-                });
-        }
-
-        // Function to stop scanning
-        function stopScanning() {
-            if (scanner) {
-                scanner.stop().then(() => {
-                    readerElement.style.display = "none";
-                    console.log("Scanner stopped successfully.");
-                }).catch(err => {
-                    console.error("Error stopping scanner:", err);
-                });
-            }
-        }
-
-        // Toggle scanning
-        toggleScanButton.addEventListener("click", () => {
-            if (isScanning) {
-                stopScanning();
-                toggleScanButton.textContent = "Start Scanning";
-            } else {
-                startScanning();
-                toggleScanButton.textContent = "Stop Scanning";
-            }
-            isScanning = !isScanning;
+            // Handle barcode detection
+            Quagga.onDetected(data => {
+                resultElement.textContent = `Scanned Result: ${data.codeResult.code}`;
+                console.log("Barcode detected:", data);
+                stopScanning(); // Automatically stop after a successful scan
+            });
         });
+
+        // Stop scanning
+        stopScanButton.addEventListener("click", stopScanning);
+
+        function stopScanning() {
+            Quagga.stop();
+            startScanButton.disabled = false;
+            stopScanButton.disabled = true;
+            resultElement.textContent = "Scanning stopped.";
+        }
     </script>
 </body>
 </html>
