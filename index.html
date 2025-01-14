@@ -67,7 +67,10 @@
 
             Html5Qrcode.getCameras().then(cameras => {
                 if (cameras && cameras.length > 0) {
-                    const cameraId = cameras[0].id; // Use the back camera
+                    // Try to find the back camera
+                    const backCamera = cameras.find(camera => camera.label.toLowerCase().includes("back"));
+                    const cameraId = backCamera ? backCamera.id : cameras[0].id;
+
                     scanner.start(
                         cameraId,
                         {
@@ -81,9 +84,15 @@
                             ]
                         },
                         (decodedText, decodedResult) => {
+                            // Handle success
                             resultElement.textContent = `Scanned Result: ${decodedText}`;
                             console.log("Decoded text:", decodedText);
                             console.log("Decoded result:", decodedResult);
+
+                            // Automatically stop scanning
+                            stopScanning();
+                            toggleScanButton.textContent = "Start Scanning";
+                            isScanning = false;
                         },
                         errorMessage => {
                             // Handle scanning errors (optional)
