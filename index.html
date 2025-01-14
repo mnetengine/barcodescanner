@@ -26,6 +26,11 @@
             color: green;
         }
 
+        #iphoneCameras {
+            display: none;
+            margin-top: 10px;
+        }
+
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -45,6 +50,7 @@
     <h1>Barcode Scanner</h1>
     <p>Click the button below to start or stop scanning.</p>
     <button id="toggle-scan">Start Scanning</button>
+    <select id="iphoneCameras"></select>
     <div id="reader"></div>
     <p id="result"></p>
 
@@ -54,27 +60,96 @@
         const toggleScanButton = document.getElementById("toggle-scan");
         const resultElement = document.getElementById("result");
         const readerElement = document.getElementById("reader");
+        const iphoneCamerasElement = document.getElementById("iphoneCameras");
 
-        function startScanning() {
-        resultElement.textContent = "";
-        readerElement.style.display = "block";
-    
-        if (!scanner) {
-            scanner = new Html5Qrcode("reader");
+        // Platform detection function
+        function isIOS() {
+            return /iPhone|iPad|iPod/i.test(navigator.userAgent);
         }
-    
-        Html5Qrcode.getCameras().then(cameras => {
-            if (cameras && cameras.length > 0) {
-                const backCamera = cameras.find(camera =>
-                    camera.label.toLowerCase().includes('back camera') || 
-                    camera.label.toLowerCase().includes('rear camera')
-                );
-                const cameraId = backCamera ? backCamera.id : cameras[0].id;
-    
-                scanner.start(
+
+        // Camera ID fetching function for Android
+        async function getCameraId() {
+            let cameraId = null;
+
+            await Html5Qrcode.getCameras()
+                .then(devices => {
+                    if (devices && devices.length) {
+                        for (let index = 0; index < devices.length; index++) {
+                            if (
+                                devices[index].label.indexOf("0") >= 0 ||
+                                devices[index].label.toLowerCase() === "back camera"
+                            ) {
+                                cameraId = devices[index].id;
+                                break;
+                            }
+                        }
+                        if (!cameraId) cameraId = devices[0].id; // Default to first camera if no match
+                    }
+                })
+                .catch(err => {
+                    console.error("Error fetching Android cameras:", err);
+                });
+
+            return cameraId;
+        }
+
+        // Camera ID fetching function for iOS
+        async function getIphoneCameras() {
+            let cameraId = null;
+
+            await Html5Qrcode.getCameras()
+                .then(devices => {
+                    if (devices && devices.length) {
+                        iphoneCamerasElement.style.display = "block";
+                        iphoneCamerasElement.innerHTML = ""; // Clear previous options
+
+                        devices.forEach(device => {
+                            const opt = document.createElement("option");
+                            opt.value = device.id;
+                            opt.innerHTML = device.label;
+                            iphoneCamerasElement.appendChild(opt);
+                        });
+
+                        cameraId = devices[0].id; // Default to the first camera
+                        iphoneCamerasElement.value = cameraId;
+                    }
+                })
+                .catch(err => {
+                    console.error("Error fetching iOS cameras:", err);
+                });
+
+            return cameraId;
+        }
+
+        // Unified camera fetching function
+        async function getCameraIdForPlatform() {
+            if (isIOS()) {
+                return await getIphoneCameras();
+            } else {
+                return await getCameraId();
+            }
+        }
+
+        // Function to start scanning
+        async function startScanning() {
+            resultElement.textContent = "";
+            readerElement.style.display = "block";
+
+            if (!scanner) {
+                scanner = new Html5Qrcode("reader");
+            }
+
+            const cameraId = await getCameraIdForPlatform();
+            if (!cameraId) {
+                alert("No cameras available.");
+                return;
+            }
+
+            scanner
+                .start(
                     cameraId,
                     {
-                        fps: 5,
+                        fps: 10,
                         qrbox: { width: 250, height: 250 },
                         focusMode: "continuous"
                     },
@@ -87,16 +162,11 @@
                     errorMessage => {
                         console.warn("Scanning error:", errorMessage);
                     }
-                ).catch(err => {
+                )
+                .catch(err => {
                     console.error("Error starting scanner:", err);
                 });
-            } else {
-                alert("No cameras found on this device.");
-            }
-        }).catch(err => {
-            console.error("Error fetching cameras:", err);
-        });
-    }
+        }
 
         // Function to stop scanning
         function stopScanning() {
