@@ -66,20 +66,15 @@
             }
 
             Html5Qrcode.getCameras().then(cameras => {
-                if (cameras && cameras.length > 0) {
-                        var cameraId = null;
-                        await Html5Qrcode.getCameras().then(devices => {
-                            if (devices && devices.length) {
+                   if (cameras && cameras.length > 0) {
                                 // PUT A FOR EACH GETING THE DEVICEID FROM CAMERA WITH ZERO
-                                for (let index = 0; index < devices.length; index++) {
-                                    if ((devices[index].label.indexOf('0')) || (devices[index].label.toLowerCase() === 'back camera')) {
-                                        cameraId = devices[index].id;
+                                for (let index = 0; index < cameras.length; index++) {
+                                    if ((cameras[index].label.indexOf('0')) || (cameras[index].label.toLowerCase() === 'back camera')) {
+                                        cameraId = cameras[index].id;
                                     } else {
-                                        cameraId = devices[0].id;
+                                        cameraId = cameras[0].id;
                                     }
                                 }
-                            }
-                        }).catch(err => {});
                         
                     scanner.start(
                       cameraId,
