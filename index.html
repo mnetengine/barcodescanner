@@ -62,13 +62,7 @@
 
             // Initialize scanner if not already initialized
             if (!scanner) {
-                const config = {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-                    formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.EAN_13]
-                };
-                scanner = new Html5QrcodeScanner("reader", config, false);
+                scanner = new Html5QrcodeScanner("reader");
             }
 
             Html5Qrcode.getCameras().then(cameras => {
