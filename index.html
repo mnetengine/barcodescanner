@@ -3,24 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode Scanner with Barcode Detection API</title>
+    <title>Barcode Scanner with Quagga2</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
         }
-        video {
+
+        #scanner-container {
+            position: relative;
             width: 100%;
             max-width: 500px;
+            margin: 20px auto;
             border: 1px solid #ccc;
-            margin-top: 20px;
         }
-        #result {
+
+        #results {
             margin-top: 20px;
             font-size: 1.2em;
             color: green;
         }
+
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -31,6 +36,7 @@
             border-radius: 5px;
             margin-top: 20px;
         }
+
         button:hover {
             background-color: #0056b3;
         }
@@ -38,48 +44,49 @@
 </head>
 <body>
     <h1>Barcode Scanner</h1>
-    <p>Use the button below to start scanning for barcodes.</p>
+    <p>Click below to start scanning barcodes.</p>
     <button id="start-scan">Start Scanning</button>
-    <video id="video" autoplay playsinline muted></video>
-    <p id="result"></p>
+    <div id="scanner-container"></div>
+    <p id="results"></p>
 
     <script>
-        const video = document.getElementById("video");
-        const resultElement = document.getElementById("result");
-        const startScanButton = document.getElementById("start-scan");
+        let scannerStarted = false;
 
-        async function startScanning() {
-            if (!("BarcodeDetector" in window)) {
-                alert("Barcode Detection API is not supported on this browser.");
-                return;
-            }
-
-            const barcodeDetector = new BarcodeDetector({ formats: ["qr_code", "ean_13", "code_128"] });
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            video.srcObject = stream;
-
-            const scanBarcodes = async () => {
-                try {
-                    const barcodes = await barcodeDetector.detect(video);
-                    if (barcodes.length > 0) {
-                        resultElement.textContent = `Scanned Result: ${barcodes[0].rawValue}`;
-                        console.log("Detected barcodes:", barcodes);
-
-                        // Stop the video stream after successful detection
-                        const tracks = stream.getTracks();
-                        tracks.forEach(track => track.stop());
-                    } else {
-                        requestAnimationFrame(scanBarcodes);
+        function startScanning() {
+            if (!scannerStarted) {
+                Quagga.init({
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: document.querySelector('#scanner-container'), // Target container for the camera feed
+                        constraints: {
+                            facingMode: "environment" // Use the back camera (if available)
+                        }
+                    },
+                    decoder: {
+                        readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "qr_reader"] // Supported barcode formats
                     }
-                } catch (err) {
-                    console.error("Barcode detection error:", err);
-                }
-            };
+                }, function(err) {
+                    if (err) {
+                        console.error("Error initializing scanner:", err);
+                        return;
+                    }
+                    Quagga.start(); // Start the scanning process
 
-            scanBarcodes();
+                    // Handle detected barcodes
+                    Quagga.onDetected(function(result) {
+                        const resultElement = document.getElementById("results");
+                        resultElement.textContent = `Scanned Result: ${result.codeResult.code}`;
+                    });
+                });
+                scannerStarted = true;
+            } else {
+                alert("Scanner is already running!");
+            }
         }
 
-        startScanButton.addEventListener("click", startScanning);
+        // Start scanning when the button is clicked
+        document.getElementById("start-scan").addEventListener("click", startScanning);
     </script>
 </body>
 </html>
