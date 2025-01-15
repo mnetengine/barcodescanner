@@ -77,6 +77,10 @@
                     Quagga.onDetected(function(result) {
                         const resultElement = document.getElementById("results");
                         resultElement.textContent = `Scanned Result: ${result.codeResult.code}`;
+
+                        // Stop scanning after detecting a barcode
+                        Quagga.stop();
+                        scannerStarted = false; // Reset the flag
                     });
                 });
                 scannerStarted = true;
