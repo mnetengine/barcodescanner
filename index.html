@@ -3,51 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode Scanner with Dynamsoft</title>
-    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.2/dist/dbr.js"></script>
+    <title>Barcode Scanner with Barcode Detection API</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
         }
-
-        #scanner-container {
-            position: relative;
+        video {
             width: 100%;
             max-width: 500px;
-            margin: 20px auto;
             border: 1px solid #ccc;
+            margin-top: 20px;
         }
-
-        #results {
+        #result {
             margin-top: 20px;
             font-size: 1.2em;
             color: green;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
     <h1>Barcode Scanner</h1>
-    <div id="scanner-container"></div>
-    <div id="results"></div>
+    <p>Use the button below to start scanning for barcodes.</p>
+    <button id="start-scan">Start Scanning</button>
+    <video id="video" autoplay playsinline muted></video>
+    <p id="result"></p>
 
     <script>
-        (async () => {
-            const scanner = await Dynamsoft.BarcodeScanner.createInstance();
-            scanner.onFrameRead = results => {
-                if (results.length > 0) {
-                    const resultContainer = document.getElementById("results");
-                    resultContainer.innerHTML = `Scanned Result: ${results[0].barcodeText}`;
+        const video = document.getElementById("video");
+        const resultElement = document.getElementById("result");
+        const startScanButton = document.getElementById("start-scan");
+
+        async function startScanning() {
+            if (!("BarcodeDetector" in window)) {
+                alert("Barcode Detection API is not supported on this browser.");
+                return;
+            }
+
+            const barcodeDetector = new BarcodeDetector({ formats: ["qr_code", "ean_13", "code_128"] });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+
+            const scanBarcodes = async () => {
+                try {
+                    const barcodes = await barcodeDetector.detect(video);
+                    if (barcodes.length > 0) {
+                        resultElement.textContent = `Scanned Result: ${barcodes[0].rawValue}`;
+                        console.log("Detected barcodes:", barcodes);
+
+                        // Stop the video stream after successful detection
+                        const tracks = stream.getTracks();
+                        tracks.forEach(track => track.stop());
+                    } else {
+                        requestAnimationFrame(scanBarcodes);
+                    }
+                } catch (err) {
+                    console.error("Barcode detection error:", err);
                 }
             };
 
-            scanner.onUnduplicatedRead = (txt, result) => {
-                console.log("Decoded text:", txt);
-            };
+            scanBarcodes();
+        }
 
-            await scanner.show(document.getElementById("scanner-container"));
-        })();
+        startScanButton.addEventListener("click", startScanning);
     </script>
 </body>
 </html>
